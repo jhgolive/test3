@@ -1,1 +1,180 @@
-테스트
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>실시간 구글맵 흑백 윤곽선</title>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
+    authDomain: "mygps-11798.firebaseapp.com",
+    databaseURL: "https://mygps-11798-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "mygps-11798",
+    storageBucket: "mygps-11798.firebasestorage.app",
+    messagingSenderId: "271371741627",
+    appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let map, marker, destinationMarker;
+let addressDiv, distanceDiv;
+let geocoder, directionsService;
+let lastPosition = null;
+let routePolyline = null;
+let clickTimeout = null;
+
+// ✅ 흑백 윤곽선 스타일
+const blackWhiteLineStyle = [
+  { featureType: "all", elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "poi", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#aaaaaa" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#888888" }] },
+  { featureType: "building", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#cccccc" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] }
+];
+
+// ✅ 내 위치 마커
+function createMarker(pos) {
+    if (marker) marker.setMap(null);
+    marker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        icon: {
+            url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
+                  <polygon points="12,10 18,10 25,15 15,40 5,15" fill="red"/>
+                </svg>`),
+            scaledSize: new google.maps.Size(30, 40)
+        }
+    });
+}
+
+// ✅ 목적지 마커
+function createDestinationMarker(pos) {
+    if (destinationMarker) destinationMarker.setMap(null);
+    destinationMarker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        icon: {
+            url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
+                  <polygon points="12,10 18,10 25,15 15,40 5,15" fill="blue"/>
+                </svg>`),
+            scaledSize: new google.maps.Size(30, 40)
+        }
+    });
+}
+
+// ✅ 주소 표시 div
+function createAddressDiv() {
+    if (!addressDiv) {
+        addressDiv = document.createElement("div");
+        addressDiv.style.fontSize = "20px";
+        addressDiv.style.fontWeight = "900";
+        addressDiv.style.padding = "0"; 
+        addressDiv.style.backgroundColor = "transparent"; 
+        addressDiv.style.color = "#000";
+        addressDiv.style.textAlign = "center"; 
+        addressDiv.style.width = "300px"; 
+        addressDiv.style.overflow = "hidden";    
+        addressDiv.style.whiteSpace = "nowrap";  
+        map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
+    }
+}
+
+// ✅ 거리 표시 div
+function createDistanceDiv() {
+    if (!distanceDiv) {
+        distanceDiv = document.createElement("div");
+        distanceDiv.style.fontSize = "16px";
+        distanceDiv.style.fontWeight = "bold";
+        distanceDiv.style.padding = "0"; 
+        distanceDiv.style.backgroundColor = "transparent"; 
+        distanceDiv.style.color = "#000";
+        distanceDiv.style.textAlign = "center";  
+        distanceDiv.style.width = "120px"; 
+        distanceDiv.style.overflow = "hidden";    
+        distanceDiv.style.whiteSpace = "nowrap";  
+        map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
+    }
+}
+
+window.onload = function() {
+    const container = document.getElementById("map");
+    map = new google.maps.Map(container, {
+        center: {lat: 37.5665, lng: 126.9780},
+        zoom: 14,
+        disableDefaultUI: true,
+        styles: blackWhiteLineStyle
+    });
+
+    geocoder = new google.maps.Geocoder();
+    directionsService = new google.maps.DirectionsService();
+
+    createAddressDiv();
+    createDistanceDiv();
+
+    const locRef = ref(db, "location/current");
+    onValue(locRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        const pos = {lat: data.lat, lng: data.lng};
+        if (!marker) createMarker(pos);
+        else marker.setPosition(pos);
+        map.setCenter(pos);
+    });
+
+    const destRef = ref(db, "location/destination");
+    onValue(destRef, (snapshot) => {
+        const dest = snapshot.val();
+        if (!dest) {
+            if (destinationMarker) destinationMarker.setMap(null);
+            destinationMarker = null;
+            return;
+        }
+        const destPos = {lat: dest.lat, lng: dest.lng};
+        if (!destinationMarker) createDestinationMarker(destPos);
+        else destinationMarker.setPosition(destPos);
+    });
+
+    // 클릭 & 더블클릭 구분
+    map.addListener("click", (e) => {
+        if (clickTimeout) return;
+        clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            const destRef = ref(db, "location/destination");
+            if (destinationMarker) {
+                set(destRef, null);
+            } else {
+                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            }
+        }, 250);
+    });
+    map.addListener("dblclick", (e) => {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+    });
+};
+</script>
+<style>
+body { margin:0; padding:0; min-height:100vh; }
+#map {
+    width:200px; height:200px; border:1px solid #000; border-radius:0px;
+    transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
+    position: absolute; top: 0; right: 0;
+}
+.gm-style-cc { bottom: -100px !important; right: -100px !important; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+</body>
+</html>
