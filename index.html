@@ -27,14 +27,13 @@ let lastPosition = null;
 let routePolyline = null;
 let clickTimeout = null;
 
-// ✅ 흑백 윤곽선 스타일
+// ✅ 오류 없는 흑백 윤곽선 스타일
 const blackWhiteLineStyle = [
   { featureType: "all", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#ffffff" }] },
   { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
   { featureType: "poi", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#aaaaaa" }] },
   { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#888888" }] },
-  { featureType: "building", elementType: "geometry.stroke", stylers: [{ visibility: "on" }, { color: "#cccccc" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] }
 ];
