@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 구글맵 - 투명모드</title>
+<title>실시간 구글맵 - 투명 배경</title>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -27,15 +27,9 @@ let lastPosition = null;
 let routePolyline = null;
 let clickTimeout = null;
 
-// ✅ 투명모드 스타일
+// ✅ 지도 완전 투명 스타일
 const transparentStyle = [
-  { elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ visibility: "off" }] }
+    { featureType: "all", elementType: "all", stylers: [{ visibility: "off" }] }
 ];
 
 // ✅ 내 위치 마커
