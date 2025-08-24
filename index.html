@@ -27,14 +27,14 @@ let lastPosition = null;
 let routePolyline = null;
 let clickTimeout = null; // ✅ 클릭/더블클릭 구분용
 
-// ✅ 배경 투명 + 모든 윤곽선 표시
+// ✅ 윤곽선 전부 검정 (#000000)
 const transparentStyle = [
   { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
   { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
-  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
-  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#000000" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#000000" }] },
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#000000" }] },
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#000000" }] }
 ];
 
 // ✅ 내 위치 마커
@@ -301,7 +301,7 @@ window.onload = function() {
 <style>
 body { margin:0; padding:0; min-height:100vh; background: transparent; }
 #map {
-    width:200px; height:200px; border:1px solid #000; border-radius:0px;
+    width:200px; height:200px; border:none; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
     background: transparent;
@@ -313,7 +313,8 @@ body { margin:0; padding:0; min-height:100vh; background: transparent; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
+
 
