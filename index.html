@@ -214,9 +214,9 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        //styles: darkModeStyle
-        //backgroundColor: "transparent", // ✅ 배경 투명
-        styles: transparentStyle        // ✅ 윤곽선 스타일 적용
+        styles: darkModeStyle,
+        backgroundColor: "transparent" // ✅ 배경 투명
+        //styles: transparentStyle        // ✅ 윤곽선 스타일 적용
     });
 
     geocoder = new google.maps.Geocoder();
@@ -232,7 +232,7 @@ window.onload = function() {
         else if (mode === 1) map.setOptions({ styles: darkModeStyle });
         else if (mode === 2) {
             map.setOptions({ styles: transparentStyle }); // ✅ 투명모드 적용
-            document.getElementById("map").style.backgroundColor = "transparent"; // ✅ div 배경 투명
+            //document.getElementById("map").style.backgroundColor = "transparent"; // ✅ div 배경 투명
         }
 
         if (addressDiv) addressDiv.style.color = (mode === 1) ? "#fff" : "#000";
@@ -341,9 +341,10 @@ body { margin:0; padding:0; min-height:100vh; background: transparent; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
+
 
 
 
