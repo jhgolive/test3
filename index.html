@@ -41,15 +41,16 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// 윤곽선만 + 투명 모드 스타일
+// 윤곽선만 + 완전 투명 모드 스타일
 const outlineOnlyStyle = [
   { elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "poi", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "off" }] }
+  { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] }
 ];
 
 // 내 위치 마커
@@ -326,7 +327,7 @@ window.onload = function() {
 body { margin:0; padding:0; min-height:100vh; }
 #map {
     width:200px; height:200px; border:0; border-radius:0px;
-    background: transparent;
+    background: transparent !important;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
@@ -337,6 +338,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-3<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
