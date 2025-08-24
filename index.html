@@ -41,16 +41,13 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// 윤곽선만 + 완전 투명 모드 스타일
+// 완전 투명 + 윤곽선만 스타일
 const outlineOnlyStyle = [
-  { elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { elementType: "geometry", stylers: [{ visibility: "off" }] }, // 배경 OFF
+  { elementType: "labels", stylers: [{ visibility: "off" }] },   // 라벨 OFF
   { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] }
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] }
 ];
 
 // 내 위치 마커
@@ -216,7 +213,7 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        styles: darkModeStyle
+        styles: darkModeStyle // 기본 다크모드
     });
 
     geocoder = new google.maps.Geocoder();
@@ -230,7 +227,7 @@ window.onload = function() {
         const mode = snapshot.val();
         if (mode === 0) map.setOptions({ styles: [] });
         else if (mode === 1) map.setOptions({ styles: darkModeStyle });
-        else if (mode === 2) map.setOptions({ styles: outlineOnlyStyle });
+        else if (mode === 2) map.setOptions({ styles: outlineOnlyStyle }); // 완전 투명 모드
         
         if (addressDiv) addressDiv.style.color = (mode === 1) ? "#fff" : "#000";
         if (distanceDiv) distanceDiv.style.color = (mode === 1) ? "#4285F4" : "#000";
@@ -324,22 +321,17 @@ window.onload = function() {
 };
 </script>
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: transparent; /* body 배경 투명 */
+body { 
+    margin:0; 
+    padding:0; 
+    min-height:100vh; 
+    background: transparent; /* 완전 투명 */
 }
 #map {
-    width:200px;
-    height:200px;
-    border:0;
-    border-radius:0px;
-    background: transparent !important; /* map 배경 투명 */
+    width:200px; height:200px; border:0; border-radius:0px;
+    background: transparent; /* 지도 div 투명 */
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: absolute; top: 0; right: 0;
 }
 .gm-style-cc {
     bottom: -100px !important;
@@ -348,6 +340,6 @@ html, body {
 </style>
 </head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
