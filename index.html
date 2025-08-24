@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 구글맵 - 투명 배경</title>
+<title>실시간 구글맵</title>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -25,11 +25,16 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let clickTimeout = null;
+let clickTimeout = null; // ✅ 클릭/더블클릭 구분용
 
-// ✅ 지도 완전 투명 스타일
+// ✅ 배경 투명 + 모든 윤곽선 표시
 const transparentStyle = [
-    { featureType: "all", elementType: "all", stylers: [{ visibility: "off" }] }
+  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
 ];
 
 // ✅ 내 위치 마커
@@ -89,7 +94,7 @@ function createDistanceDiv() {
         distanceDiv.style.fontWeight = "bold";
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
-        distanceDiv.style.color = "#4285F4";
+        distanceDiv.style.color = "#000";
         distanceDiv.style.textAlign = "center";  
         distanceDiv.style.width = "120px"; 
         distanceDiv.style.overflow = "hidden";    
@@ -195,7 +200,8 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        styles: transparentStyle
+        backgroundColor: "transparent", // ✅ 배경 투명
+        styles: transparentStyle        // ✅ 윤곽선 스타일 적용
     });
 
     geocoder = new google.maps.Geocoder();
@@ -237,6 +243,7 @@ window.onload = function() {
         }
     });
 
+    // ✅ 클릭 & 더블클릭 구분
     map.addListener("click", (e) => {
         if (clickTimeout) return;
         clickTimeout = setTimeout(() => {
@@ -292,12 +299,12 @@ window.onload = function() {
 };
 </script>
 <style>
-body { margin:0; padding:0; min-height:100vh; }
+body { margin:0; padding:0; min-height:100vh; background: linear-gradient(135deg, #222, #555); }
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
-    background-color: transparent;
+    background: transparent;
 }
 .gm-style-cc {
     bottom: -100px !important;
