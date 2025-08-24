@@ -43,12 +43,12 @@ const darkModeStyle = [
 
 // ✅ 윤곽선 + 투명 스타일
 const transparentStyle = [
-  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
-  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
-  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
-  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
+  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },              // 채우기
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "on" }] },                      // 라벨
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },            // 도로
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },  // 행정구역
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] },       // 지형
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }            // 물
 ];
 
 // 내 위치 마커
@@ -354,4 +354,5 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
