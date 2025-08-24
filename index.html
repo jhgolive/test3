@@ -324,12 +324,22 @@ window.onload = function() {
 };
 </script>
 <style>
-body { margin:0; padding:0; min-height:100vh; }
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: transparent; /* body 배경 투명 */
+}
 #map {
-    width:200px; height:200px; border:0; border-radius:0px;
-    background: transparent !important;
+    width:200px;
+    height:200px;
+    border:0;
+    border-radius:0px;
+    background: transparent !important; /* map 배경 투명 */
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
-    position: absolute; top: 0; right: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
 }
 .gm-style-cc {
     bottom: -100px !important;
@@ -338,6 +348,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
