@@ -2,49 +2,46 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 구글맵 - 윤곽선만</title>
+<title>실시간 구글맵 - 투명 윤곽선</title>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
 <script>
 let map;
 
-// ✅ 배경 투명 + 모든 윤곽선 표시
+// ✅ 배경 투명 + 윤곽선만 표시
 const transparentStyle = [
-  // 채움 제거
   { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
-  // 라벨 제거
   { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
 
-  // 도로 윤곽선
   { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
-
-  // 행정구역 윤곽선
   { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
-
-  // 지형 윤곽선
   { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
-
-  // 물줄기 윤곽선
   { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
 ];
 
 window.onload = function() {
     const container = document.getElementById("map");
     map = new google.maps.Map(container, {
-        center: {lat: 37.5665, lng: 126.9780}, // 서울시청 기준
+        center: {lat: 37.5665, lng: 126.9780}, // 서울시청
         zoom: 14,
         disableDefaultUI: true,
-        backgroundColor: "transparent", // ✅ 배경 투명
-        styles: transparentStyle        // ✅ 윤곽선 스타일 적용
+        backgroundColor: "transparent", // ✅ 지도 배경 투명
+        styles: transparentStyle
     });
 };
 </script>
 <style>
+/* ✅ body 완전 투명 */
 body {
-  margin:0; padding:0;
-  background: linear-gradient(135deg, #222, #555); /* 뒤 배경 보이게 테스트 */
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: transparent !important;
 }
+
 #map {
-  width:100vw; height:100vh;
+  width: 100vw;
+  height: 100vh;
+  background: transparent !important; /* 지도 컨테이너도 투명 */
 }
 </style>
 </head>
