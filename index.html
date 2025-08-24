@@ -25,9 +25,9 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let clickTimeout = null; // ✅ 클릭/더블클릭 구분용
+let clickTimeout = null;
 
-// ✅ 다크모드 스타일
+// 다크모드 스타일
 const darkModeStyle = [
   { elementType: "geometry", stylers: [{ color: "#212121" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
@@ -41,7 +41,18 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// ✅ 내 위치 마커
+// 윤곽선만 + 투명 모드 스타일
+const outlineOnlyStyle = [
+  { elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "off" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "off" }] }
+];
+
+// 내 위치 마커
 function createMarker(pos) {
     if (marker) marker.setMap(null);
     marker = new google.maps.Marker({
@@ -57,7 +68,7 @@ function createMarker(pos) {
     });
 }
 
-// ✅ 목적지 마커
+// 목적지 마커
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
     destinationMarker = new google.maps.Marker({
@@ -73,7 +84,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div
+// 주소 div
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -90,7 +101,7 @@ function createAddressDiv() {
     }
 }
 
-// ✅ 거리 표시 div
+// 거리 div
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -107,7 +118,7 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트
+// 주소 업데이트
 function simplifyName(name) {
     const map = {
         "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
@@ -144,7 +155,7 @@ function updateAddress(lat, lng) {
     });
 }
 
-// ✅ 거리 표시 업데이트
+// 거리 표시 업데이트
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
@@ -160,7 +171,7 @@ function updateDistanceText(distanceMeters) {
     else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-// ✅ 경로 그리기
+// 경로 그리기
 function drawFlexibleRoute(start, end) {
     const modes = [
         google.maps.TravelMode.WALKING,
@@ -213,12 +224,15 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
-    const darkRef = ref(db, "location/settings/darkMode");
-    onValue(darkRef, (snapshot) => {
-        const enabled = snapshot.val();
-        map.setOptions({ styles: enabled ? darkModeStyle : [] });
-        if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
-        if (distanceDiv) distanceDiv.style.color = enabled ? "#4285F4" : "#000";
+    const modeRef = ref(db, "location/settings/mode");
+    onValue(modeRef, (snapshot) => {
+        const mode = snapshot.val();
+        if (mode === 0) map.setOptions({ styles: [] });
+        else if (mode === 1) map.setOptions({ styles: darkModeStyle });
+        else if (mode === 2) map.setOptions({ styles: outlineOnlyStyle });
+        
+        if (addressDiv) addressDiv.style.color = (mode === 1) ? "#fff" : "#000";
+        if (distanceDiv) distanceDiv.style.color = (mode === 1) ? "#4285F4" : "#000";
     });
 
     const locRef = ref(db, "location/current");
@@ -254,7 +268,6 @@ window.onload = function() {
         }
     });
 
-    // ✅ 클릭 & 더블클릭 구분
     map.addListener("click", (e) => {
         if (clickTimeout) return;
         clickTimeout = setTimeout(() => {
@@ -312,7 +325,8 @@ window.onload = function() {
 <style>
 body { margin:0; padding:0; min-height:100vh; }
 #map {
-    width:200px; height:200px; border:1px solid #000; border-radius:0px;
+    width:200px; height:200px; border:0; border-radius:0px;
+    background: transparent;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
