@@ -41,16 +41,6 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// ✅ 투명모드 스타일
-const transparentModeStyle = [
-  { elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "road", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "water", stylers: [{ visibility: "off" }] },
-  { elementType: "labels", stylers: [{ visibility: "off" }] }
-];
-
 // ✅ 내 위치 마커
 function createMarker(pos) {
     if (marker) marker.setMap(null);
@@ -223,29 +213,13 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
-// ✅ mode = 0(일반) / 1(다크) / 2(투명)
-const modeRef = ref(db, "location/settings/mode");
-onValue(modeRef, (snapshot) => {
-    const mode = snapshot.val();
-    if (mode === 1) { // 다크
-        map.setOptions({ styles: darkModeStyle });
-        document.body.style.backgroundColor = "#f0f0f0"; // 일반 배경
-        if (addressDiv) addressDiv.style.color = "#fff";
-        if (distanceDiv) distanceDiv.style.color = "#4285F4";
-    } else if (mode === 2) { // 투명
-        map.setOptions({ styles: transparentModeStyle });
-        document.getElementById("map").style.backgroundColor = "transparent";
-        document.body.style.backgroundColor = "transparent"; // ← body도 투명
-        if (addressDiv) addressDiv.style.color = "#fff"; 
-        if (distanceDiv) distanceDiv.style.color = "#fff"; 
-    } else { // 일반
-        map.setOptions({ styles: [] });
-        document.getElementById("map").style.backgroundColor = "#f0f0f0";
-        document.body.style.backgroundColor = "#f0f0f0"; // 일반 배경
-        if (addressDiv) addressDiv.style.color = "#000";
-        if (distanceDiv) distanceDiv.style.color = "#000";
-    }
-});
+    const darkRef = ref(db, "location/settings/darkMode");
+    onValue(darkRef, (snapshot) => {
+        const enabled = snapshot.val();
+        map.setOptions({ styles: enabled ? darkModeStyle : [] });
+        if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
+        if (distanceDiv) distanceDiv.style.color = enabled ? "#4285F4" : "#000";
+    });
 
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
@@ -339,8 +313,7 @@ onValue(modeRef, (snapshot) => {
 body { margin:0; padding:0; min-height:100vh; }
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
-    background: transparent; /* ← 기본 투명 배경 */
-    transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease, background 0.2s ease;
+    transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
 .gm-style-cc {
@@ -353,4 +326,3 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
-
