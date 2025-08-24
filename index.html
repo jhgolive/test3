@@ -41,13 +41,12 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// 윤곽선만 + 완전 투명 모드 스타일
+// 윤곽선만 + 투명 모드 스타일
 const outlineOnlyStyle = [
-  { elementType: "geometry.fill", stylers: [{ color: "#00000000" }] }, // 배경 투명
-  { elementType: "labels", stylers: [{ visibility: "off" }] },
+  { elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
-  { featureType: "water", elementType: "geometry.fill", stylers: [{ color: "#00000000" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000", visibility: "on" }] },
   { featureType: "poi", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "off" }] },
   { featureType: "landscape", elementType: "geometry", stylers: [{ visibility: "off" }] }
@@ -228,9 +227,12 @@ window.onload = function() {
     const modeRef = ref(db, "location/settings/mode");
     onValue(modeRef, (snapshot) => {
         const mode = snapshot.val();
-        if(mode === 0) map.setOptions({ styles: [] });           // 일반
-        else if(mode === 1) map.setOptions({ styles: darkModeStyle }); // 다크
-        else if(mode === 2) map.setOptions({ styles: outlineOnlyStyle }); // 윤곽선+투명
+        if (mode === 0) map.setOptions({ styles: [] });
+        else if (mode === 1) map.setOptions({ styles: darkModeStyle });
+        else if (mode === 2) map.setOptions({ styles: outlineOnlyStyle });
+        
+        if (addressDiv) addressDiv.style.color = (mode === 1) ? "#fff" : "#000";
+        if (distanceDiv) distanceDiv.style.color = (mode === 1) ? "#4285F4" : "#000";
     });
 
     const locRef = ref(db, "location/current");
@@ -241,18 +243,31 @@ window.onload = function() {
         if (!marker) createMarker(pos);
         else marker.setPosition(pos);
         map.setCenter(pos);
+        if (data.level !== undefined) map.setZoom(20 - data.level);
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
+            if (routePolyline && destinationMarker) {
+                const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                    marker.getPosition(),
+                    destinationMarker.getPosition()
+                );
+                updateDistanceText(dist);
+            }
         }
+        if (data.opacity !== undefined) container.style.opacity = data.opacity;
+        if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
         updateAddress(pos.lat, pos.lng);
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition().toJSON();
-            drawFlexibleRoute(pos, destPos);
+            if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
+                    new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition)) > 5) {
+                drawFlexibleRoute(pos, destPos);
+                lastPosition = pos;
+            }
         }
     });
 
-    // 클릭 & 더블클릭
     map.addListener("click", (e) => {
         if (clickTimeout) return;
         clickTimeout = setTimeout(() => {
@@ -289,26 +304,39 @@ window.onload = function() {
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
         if (marker) drawFlexibleRoute(marker.getPosition().toJSON(), destPos);
+        lastPosition = marker ? marker.getPosition().toJSON() : null;
+    });
+
+    window.addEventListener("resize", () => {
+        if (marker) {
+            const pos = marker.getPosition().toJSON();
+            updateAddress(pos.lat, pos.lng);
+        }
+        if (routePolyline && destinationMarker) {
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                marker.getPosition(),
+                destinationMarker.getPosition()
+            );
+            updateDistanceText(dist);
+        }
     });
 };
 </script>
 <style>
-body {
-    margin:0; padding:0;
-    background: url('background.jpg') no-repeat center center fixed;
-    background-size: cover;
-}
+body { margin:0; padding:0; min-height:100vh; }
 #map {
-    width:200px; height:200px; border:0;
-    border-radius:0px;
-    background: transparent !important;
+    width:200px; height:200px; border:0; border-radius:0px;
+    background: transparent;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
-.gm-style-cc { bottom:-100px !important; right:-100px !important; }
+.gm-style-cc {
+    bottom: -100px !important;
+    right: -100px !important;
+}
 </style>
 </head>
 <body>
-5<div id="map"></div>
+3<div id="map"></div>
 </body>
 </html>
