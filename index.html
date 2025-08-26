@@ -268,6 +268,19 @@ window.onload = function() {
         }
     });
 
+    // ✅ 지도 모드 필터 적용 (location/settings/mode)
+    const modeRef = ref(db, "location/settings/mode");
+    onValue(modeRef, (snapshot) => {
+        const mode = snapshot.val();
+        if (mode === 0) {
+            container.style.filter = "none";
+        } else if (mode === 1) {
+            container.style.filter = "invert(100%) hue-rotate(180deg) saturate(60%) brightness(80%) contrast(90%)";
+        } else if (mode === 2) {
+            container.style.filter = "invert(100%) grayscale(100%) brightness(85%) contrast(95%)";
+        }
+    });
+
     // 클릭/더블클릭 처리
     let clickTimeout = null;
 
@@ -333,21 +346,12 @@ body {
     margin:0; padding:0; min-height:100vh; position: relative;
 }
 #map {
-filter: invert(100%) grayscale(100%) brightness(85%) contrast(95%);
     width:200px; height:200px; border:0; border-radius:0px;
     position: absolute; top: 0; right: 0;
 }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
-
-
-
-
-
-
-
