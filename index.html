@@ -333,16 +333,17 @@ body {
     margin:0; padding:0; min-height:100vh; position: relative;
 }
 #map {
-		background-color: rgba(255,255,255,0.1); /* 30% 투명 */
+	filter: invert(100%) hue-rotate(180deg) saturate(60%) brightness(80%) contrast(90%);
     width:200px; height:200px; border:0; border-radius:0px;
     position: absolute; top: 0; right: 0;
 }
 </style>
 </head>
 <body>
-4<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
+
 
 
 
