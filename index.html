@@ -172,11 +172,23 @@ function updateDistanceUnitOnResize() {
     else unitSpan.style.display = 'inline';
 }
 
-// 카카오 길찾기 REST API
+// 카카오 자동차 길찾기 REST API
+//async function fetchRoute(start, end) {
+//    const REST_KEY = "bac1f5ced0d30c96b782458d968713fe";
+//    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
+//    const response = await fetch(url, {
+//        method: "GET",
+//        headers: { Authorization: `KakaoAK ${REST_KEY}` }
+//    });
+//    const data = await response.json();
+//    return data;
+//}
+
+// 카카오 도보 경로 REST API
 async function fetchRoute(start, end) {
-    const REST_KEY = "bac1f5ced0d30c96b782458d968713fe";
-    // const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`; // 자동차
-    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND&vehicle=FOOT`; // 도보
+    const REST_KEY = "bac1f5ced0d30c96b782458d968713fe"; 
+    const url = `https://apis-navi.kakaomobility.com/v1/walking?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}`;
+    
     const response = await fetch(url, {
         method: "GET",
         headers: { Authorization: `KakaoAK ${REST_KEY}` }
@@ -361,5 +373,3 @@ body {
 <div id="map"></div>
 </body>
 </html>
-
-
