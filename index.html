@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뉴스 스크롤 컨트롤 (Firebase 연동)</title>
+<title>뉴스 스크롤 Firebase 연동</title>
 <style>
   body {
     margin: 0;
@@ -36,16 +36,12 @@
     animation-iteration-count: infinite;
     animation-fill-mode: forwards;
   }
-
-  @keyframes scroll {
-    from { transform: translateX(100vw); }
-    to { transform: translateX(-100%); }
-  }
 </style>
 </head>
 <body>
+
 <div id="wrapper">
-  <div id="news">Firebase 연동 뉴스 스크롤 테스트 중입니다.</div>
+  <div id="news">뉴스 로딩 중...</div>
 </div>
 
 <script type="module">
@@ -62,15 +58,17 @@ const firebaseConfig = {
   messagingSenderId: "271371741627",
   appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const newsEl = document.getElementById("news");
+
 let isReverse = false;
 let isPaused = false;
 let speed = 100; // px/sec
 
-// 뉴스 시작
+// ----------------- 애니메이션 시작 -----------------
 function startAnimation() {
   const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
@@ -78,16 +76,16 @@ function startAnimation() {
 
   newsEl.style.animation = `scroll linear ${duration}s infinite`;
   newsEl.style.animationDirection = isReverse ? 'reverse' : 'normal';
-  newsEl.style.animationPlayState = 'running';
+  newsEl.style.animationPlayState = isPaused ? 'paused' : 'running';
 }
 
-// Firebase control 값 실시간 감지
+// ----------------- Firebase control 감지 -----------------
 const controlRef = ref(db, "ttsControl");
 onValue(controlRef, snapshot => {
   const data = snapshot.val();
   if (!data) return;
 
-  // 글자 크기 적용
+  // 글자 크기
   if (data.fontSize) newsEl.style.fontSize = data.fontSize + "px";
 
   // 재생/일시정지
@@ -102,7 +100,7 @@ onValue(controlRef, snapshot => {
   }
 });
 
-// 방향 전환 함수 (중간 위치에서 바로 반대로)
+// ----------------- 방향 전환 (중간 위치에서 바로) -----------------
 function toggleDirection(reverse) {
   const style = getComputedStyle(newsEl);
   const matrix = new DOMMatrixReadOnly(style.transform);
@@ -112,7 +110,7 @@ function toggleDirection(reverse) {
   const textWidth = newsEl.offsetWidth;
   const totalDistance = wrapperWidth + textWidth;
 
-  // 현재 진행률 계산
+  // 진행률 계산
   let progress;
   if (!isReverse) {
     progress = (wrapperWidth - currentX) / totalDistance;
@@ -122,7 +120,7 @@ function toggleDirection(reverse) {
 
   isReverse = reverse;
 
-  // 기존 애니메이션 제거
+  // 애니메이션 초기화 후 transform 유지
   newsEl.style.animation = 'none';
   newsEl.style.transform = `translateX(${currentX}px)`;
 
@@ -136,8 +134,25 @@ function toggleDirection(reverse) {
   });
 }
 
-// 페이지 로드 시 초기 애니메이션
+// ----------------- 뉴스 내용 실시간 반영 -----------------
+const newsRef = ref(db, "ttsControl/newsText");
+onValue(newsRef, snapshot => {
+  const text = snapshot.val();
+  if (!text) return;
+
+  // 애니메이션 유지하면서 텍스트만 교체
+  const style = getComputedStyle(newsEl);
+  const matrix = new DOMMatrixReadOnly(style.transform);
+  const currentX = matrix.m41;
+
+  newsEl.textContent = text;
+  newsEl.style.transform = `translateX(${currentX}px)`; // 위치 유지
+  startAnimation();
+});
+
+// 초기 애니메이션
 window.onload = startAnimation;
+
 </script>
 </body>
 </html>
