@@ -83,11 +83,16 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// back 값 감지
+// back 값 감지 + 즉시 0으로 초기화
 const backRef = ref(db, "back");
 onValue(backRef, (snapshot) => {
-  const backSec = snapshot.val();
+  let backSec = snapshot.val();
   if (!backSec) return;
+
+  // Firebase back 값 먼저 0으로 초기화
+  set(ref(db, "back"), 0);
+
+  // 그 다음 적용
   applyBack(backSec);
 });
 
@@ -123,7 +128,7 @@ function startScroll(text) {
   });
 }
 
-// back 적용 (CSS 애니메이션 중간 위치 변경 후 초기화)
+// back 적용 (CSS 애니메이션 중간 위치 변경)
 function applyBack(seconds) {
   if (!seconds) return;
 
@@ -142,9 +147,6 @@ function applyBack(seconds) {
 
   // 조금 있다가 다시 재생
   setTimeout(() => { if (!isPaused) newsEl.style.animationPlayState = "running"; }, 10);
-
-  // Firebase back 값 초기화
-  set(ref(db, "back"), 0);
 }
 
 // 일시정지 / 재개
