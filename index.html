@@ -148,40 +148,58 @@ function reverseScroll(seconds) {
   if (reverseRunning) return;
   reverseRunning = true;
 
-  // 1️⃣ CSS 애니메이션 완전히 멈춤
+  // 1️⃣ 현재 상태 정지
   const computed = getComputedStyle(newsEl);
   const matrix = new WebKitCSSMatrix(computed.transform);
   let currentX = matrix.m41;
-  newsEl.style.animation = "none";
+  newsEl.style.animation = "none"; // CSS 애니메이션 해제
   newsEl.style.transform = `translateX(${currentX}px)`;
 
-  // 2️⃣ 되감기 (왼→오 방향)
+  // 2️⃣ 되감기 (반대 방향으로)
   const speed = 100; // px/sec
   const distance = speed * seconds;
-  const targetX = currentX + distance; // ← 이건 오른쪽(되감기) 방향
-
+  const targetX = currentX + distance; // ← 되감기 방향 (오른쪽)
   const start = performance.now();
   const duration = seconds * 1000;
+
+  function rewind(now) {
+    const progress = (now - start) / duration;
+    if (progress < 1) {
+      const newX = currentX + distance * progress;
+      newsEl.style.transform = `translateX(${newX}px)`;
+      requestAnimationFrame(rewind);
+    } else {
+      newsEl.style.transform = `translateX(${targetX}px)`;
+      reverseRunning = false;
+      continueScroll(targetX); // ✅ 되감기 끝 → 이어서 정방향 스크롤
+    }
+  }
+  requestAnimationFrame(rewind);
+}
+
+// 3️⃣ 되감기 이후 이어서 계속 왼쪽으로 흘러가게
+function continueScroll(startX) {
+  const speed = 100; // px/sec
+  const wrapperWidth = newsEl.parentElement.offsetWidth;
+  const textWidth = newsEl.offsetWidth;
+  const endX = -textWidth; // 완전히 왼쪽으로 사라질 때까지
+
+  const distance = startX - endX;
+  const duration = distance / speed * 1000; // 남은 시간(ms)
+
+  const start = performance.now();
 
   function step(now) {
     const progress = (now - start) / duration;
     if (progress < 1) {
-      // ✅ currentX에서 targetX로 "오른쪽으로" 이동해야 함
-      const newX = currentX + distance * progress;
+      const newX = startX - distance * progress;
       newsEl.style.transform = `translateX(${newX}px)`;
       requestAnimationFrame(step);
     } else {
-      newsEl.style.transform = `translateX(${targetX}px)`;
-      reverseRunning = false;
-
-      // 3️⃣ 되감기 끝 → 다시 왼쪽(정방향)으로 애니메이션 재개
-      requestAnimationFrame(() => {
-        newsEl.style.animation = ""; // 원래 scroll 애니메이션 복원
-        newsEl.style.animationPlayState = "running";
-      });
+      newsEl.style.transform = `translateX(${endX}px)`;
+      loadNews(); // 끝나면 다음 뉴스
     }
   }
-
   requestAnimationFrame(step);
 }
 
