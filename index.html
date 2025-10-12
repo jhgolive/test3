@@ -9,7 +9,6 @@
     background: transparent;
     overflow: hidden;
   }
-
   #wrapper {
     white-space: nowrap;
     overflow: hidden;
@@ -21,7 +20,6 @@
     height: 40px;
     z-index: 9999;
   }
-
   #news {
     display: inline-block;
     font-size: 28px;
@@ -38,7 +36,6 @@
     animation-timing-function: linear;
     animation-iteration-count: 1;
   }
-
   @keyframes scroll {
     from { transform: translateX(100vw); }
     to { transform: translateX(-100%); }
@@ -52,9 +49,8 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -83,23 +79,26 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// back 레퍼런스
+// ✅ back 값 감시 (once 방식)
 const backRef = ref(db, "back");
 
-// 1️⃣ 페이지 처음 로드 시 back 초기화
-set(backRef, 0).then(() => console.log("back 값 초기화 완료"));
+// 시작 시 무조건 0으로 초기화
+await set(backRef, 0);
 
-// 2️⃣ 이벤트 감지
-onValue(backRef, (snapshot) => {
-  const backSec = snapshot.val();
-  if (!backSec) return;
+// back 값 감시 함수
+function watchBack() {
+  onValue(backRef, async (snapshot) => {
+    const backSec = snapshot.val();
+    if (!backSec || backSec === 0) return;
 
-  // back 적용
-  applyBack(backSec);
+    // back 적용
+    applyBack(backSec);
 
-  // 적용 후 즉시 0으로 초기화
-  set(backRef, 0);
-});
+    // 바로 초기화
+    await set(backRef, 0);
+  });
+}
+watchBack();
 
 // 뉴스 불러오기
 async function loadNews() {
@@ -115,43 +114,35 @@ async function loadNews() {
 // 스크롤 시작
 function startScroll(text) {
   newsEl.textContent = text;
-
   const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
   const speed = 100; // px/sec
   animationDuration = (wrapperWidth + textWidth) / speed;
 
-  // CSS 애니메이션 설정
   newsEl.style.animation = `scroll linear ${animationDuration}s 1`;
   newsEl.style.animationPlayState = "running";
   isPaused = false;
 
-  // 애니메이션 종료 시 다음 뉴스
   newsEl.addEventListener("animationend", function handler() {
     newsEl.removeEventListener("animationend", handler);
     loadNews();
   });
 }
 
-// back 적용 (CSS 애니메이션 중간 위치 변경)
+// back 적용 (CSS 방식 유지)
 function applyBack(seconds) {
   if (!seconds) return;
-
-  // 현재 transform 값 가져오기
   const style = window.getComputedStyle(newsEl);
   const matrix = new DOMMatrixReadOnly(style.transform);
   let currentX = matrix.m41;
-
-  // 이동할 픽셀 계산
-  const speed = (newsEl.parentElement.offsetWidth + newsEl.offsetWidth) / animationDuration; // px/sec
+  const speed = (newsEl.parentElement.offsetWidth + newsEl.offsetWidth) / animationDuration;
   const movePx = speed * seconds;
 
-  // transform 직접 적용
   newsEl.style.animationPlayState = "paused";
   newsEl.style.transform = `translateX(${currentX + movePx}px)`;
-
-  // 조금 있다가 다시 재생
-  setTimeout(() => { if (!isPaused) newsEl.style.animationPlayState = "running"; }, 10);
+  setTimeout(() => {
+    if (!isPaused) newsEl.style.animationPlayState = "running";
+  }, 10);
 }
 
 // 일시정지 / 재개
@@ -164,7 +155,6 @@ function resumeScroll() {
   isPaused = false; 
 }
 
-// 초기 실행
 loadNews();
 </script>
 </body>
