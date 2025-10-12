@@ -34,6 +34,9 @@
     position: absolute;
     top: 0;
     white-space: nowrap;
+    animation-name: scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
   }
 
   @keyframes scroll {
@@ -51,7 +54,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// ✅ Firebase 설정
+// Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -69,35 +72,31 @@ const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
 let isPaused = false;
-let startTime = null;
+let startTime = 0;
 let duration = 0;
 let pausedProgress = 0;
 let lastBackValue = 0;
 
-// ✅ Firebase ttsControl 실시간 감지
+// Firebase ttsControl 감지
 const controlRef = ref(db, "ttsControl");
 onValue(controlRef, async (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
 
-  // 재생 / 일시정지
   if (data.playing === false) pauseScroll();
   else if (data.playing === true) resumeScroll();
 
-  // 🔙 back 값 변화 감지 (예: -5)
   if (typeof data.back === "number" && data.back !== lastBackValue) {
     const seconds = Math.abs(data.back);
     if (data.back < 0) rewindScroll(seconds);
     else if (data.back > 0) forwardScroll(seconds);
 
     lastBackValue = data.back;
-
-    // 되감기/빨리감기 후 Firebase 초기화
-    await set(ref(db, "ttsControl/back"), 0);
+    await set(ref(db, "ttsControl/back"), 0); // 초기화
   }
 });
 
-// ✅ 뉴스 불러오기
+// 뉴스 불러오기
 async function loadNews() {
   try {
     const res = await fetch(API_URL);
@@ -108,28 +107,30 @@ async function loadNews() {
   }
 }
 
-// ✅ 스크롤 시작
+// 스크롤 시작
 function startScroll(text) {
   newsEl.textContent = text;
 
   const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
-  const speed = 100; // px/sec
-  duration = (wrapperWidth + textWidth) / speed;
+  duration = (wrapperWidth + textWidth) / 100; // px/sec = 100
 
+  newsEl.style.animation = "none";
+  newsEl.offsetHeight; // 강제 리플로우
   newsEl.style.animation = `scroll linear ${duration}s 1`;
   newsEl.style.animationPlayState = "running";
+
   startTime = performance.now();
-  isPaused = false;
   pausedProgress = 0;
+  isPaused = false;
 
   newsEl.addEventListener("animationend", function handler() {
     newsEl.removeEventListener("animationend", handler);
-    loadNews(); // 다음 뉴스 자동 로드
+    loadNews();
   });
 }
 
-// ✅ 일시정지 / 재개
+// 일시정지/재개
 function pauseScroll() {
   if (!isPaused) {
     const elapsed = (performance.now() - startTime) / 1000;
@@ -141,51 +142,59 @@ function pauseScroll() {
 
 function resumeScroll() {
   if (isPaused) {
+    const wrapperWidth = newsEl.parentElement.offsetWidth;
+    const textWidth = newsEl.offsetWidth;
+    const totalDistance = wrapperWidth + textWidth;
+    const remainingDistance = totalDistance * (1 - pausedProgress);
+    const remainingTime = remainingDistance / 100;
+
+    newsEl.style.animation = "none";
+    newsEl.offsetHeight;
+    newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
     newsEl.style.animationPlayState = "running";
+
     startTime = performance.now() - pausedProgress * duration * 1000;
     isPaused = false;
   }
 }
 
-// ✅ 되감기
-function rewindScroll(seconds) {
-  shiftScroll(-seconds);
-}
+// 되감기/빨리감기
+function rewindScroll(seconds) { shiftScroll(-seconds); }
+function forwardScroll(seconds) { shiftScroll(seconds); }
 
-// ✅ 빨리감기
-function forwardScroll(seconds) {
-  shiftScroll(seconds);
-}
-
-// ✅ 공용: 스크롤 시간 이동
 function shiftScroll(seconds) {
-  const elapsed = (performance.now() - startTime) / 1000;
-  let newElapsed = elapsed + seconds;
-  if (newElapsed < 0) newElapsed = 0;
-  if (newElapsed > duration) newElapsed = duration;
-
-  const progress = newElapsed / duration;
   const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
+  const totalDistance = wrapperWidth + textWidth;
 
-  // 현재 위치 계산
-  const distance = wrapperWidth + textWidth;
-  const newX = wrapperWidth - progress * distance;
+  // 현재 진행률 계산
+  let elapsed = isPaused ? pausedProgress * duration : (performance.now() - startTime)/1000;
+  let progress = elapsed / duration;
 
-  // 애니메이션 일시 해제 후 위치 이동
+  // 되감기 적용
+  elapsed += seconds;
+  if (elapsed < 0) elapsed = 0;
+  if (elapsed > duration) elapsed = duration;
+  progress = elapsed / duration;
+
+  // transform 직접 이동
+  const newX = wrapperWidth - progress * totalDistance;
   newsEl.style.animation = "none";
   newsEl.style.transform = `translateX(${newX}px)`;
 
-  // 잠시 후 다시 애니메이션 이어붙이기
-  setTimeout(() => {
-    const remaining = duration - newElapsed;
-    newsEl.style.animation = `scroll linear ${remaining}s 1`;
-    newsEl.style.animationPlayState = isPaused ? "paused" : "running";
-    startTime = performance.now() - newElapsed * 1000;
-  }, 30);
+  // 남은 애니메이션 재설정
+  const remainingDistance = totalDistance * (1 - progress);
+  const remainingTime = remainingDistance / 100;
+
+  newsEl.offsetHeight; // 리플로우
+  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
+  newsEl.style.animationPlayState = isPaused ? "paused" : "running";
+
+  startTime = performance.now() - elapsed * 1000;
+  pausedProgress = isPaused ? elapsed / duration : 0;
 }
 
-// ✅ 시작
+// 초기 뉴스 로드
 loadNews();
 </script>
 </body>
