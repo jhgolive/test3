@@ -2,58 +2,60 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뉴스</title>
+<title>뉴스 스크롤 컨트롤</title>
 <style>
-  body {
-    margin: 0;
-    background: transparent;
-    overflow: hidden;
-  }
+body {
+  margin: 0;
+  background: black;
+  overflow: hidden;
+  color: white;
+  font-family: sans-serif;
+}
+#wrapper {
+  white-space: nowrap;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 50px;
+}
+#news {
+  display: inline-block;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  animation-name: scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+}
+@keyframes scroll {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(-100%); }
+}
 
-  #wrapper {
-    white-space: nowrap;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    transform: translateY(-8px);
-    width: 100vw;
-    height: 40px;
-    z-index: 9999;
-  }
-
-  #news {
-    display: inline-block;
-    font-size: 28px;
-    color: white;
-    font-weight: bold;
-    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black, 
-                 -1px -1px black, -1px 1px black, 1px -1px black, 1px 1px black;
-    position: absolute;
-    top: 0;
-    white-space: nowrap;
-    will-change: transform;
-    backface-visibility: hidden;
-    animation-name: scroll;
-    animation-timing-function: linear;
-    animation-iteration-count: 1;
-  }
-
-  @keyframes scroll {
-    from { transform: translateX(100vw); }
-    to { transform: translateX(-100%); }
-  }
+/* 버튼 스타일 */
+button { font-size: 20px; margin: 5px; }
 </style>
 </head>
 <body>
-<div id="wrapper">
-  <div id="news">뉴스 로딩 중...</div>
+
+<div id="wrapper"><div id="news">뉴스 로딩 중...</div></div>
+
+<div style="position: fixed; top: 60px; left: 10px;">
+  <button id="playBtn">▶ 재생</button>
+  <button id="pauseBtn">‖ 일시정지</button>
+  <button id="rewindBtn"><< 5초 되감기</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
+// Firebase 초기화
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -63,45 +65,36 @@ const firebaseConfig = {
   messagingSenderId: "271371741627",
   appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const newsEl = document.getElementById("news");
-const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
-
-let animationStartTime = 0;
-let pausedProgress = 0;
-let duration = 0;
-let wrapperWidth = 0;
+const wrapper = document.getElementById("wrapper");
+let wrapperWidth = wrapper.offsetWidth;
 let textWidth = 0;
+let speed = 100; // px/sec
+let duration = 0;
 let paused = false;
 
+// 뉴스 가져오기
 async function loadNews() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch("https://newstts-production-b5a7.up.railway.app/news");
     const data = await res.json();
     if (data.news) startScroll(data.news);
-  } catch (err) {
-    console.error("뉴스 불러오기 실패", err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 function startScroll(text) {
   newsEl.textContent = text;
-  wrapperWidth = newsEl.parentElement.offsetWidth;
   textWidth = newsEl.offsetWidth;
-  const speed = 100; // px/sec
   duration = (wrapperWidth + textWidth) / speed;
 
-  // 초기화 및 재시작
+  // CSS 애니메이션 초기화
   newsEl.style.animation = "none";
-  newsEl.offsetHeight;
+  newsEl.offsetHeight; // 리플로우
   newsEl.style.animation = `scroll linear ${duration}s 1`;
   newsEl.style.animationPlayState = "running";
-
-  animationStartTime = performance.now();
-  pausedProgress = 0;
   paused = false;
 
   newsEl.addEventListener("animationend", function handler() {
@@ -113,60 +106,70 @@ function startScroll(text) {
 // --- 일시정지 ---
 function pauseScroll() {
   if (paused) return;
-  const elapsed = (performance.now() - animationStartTime) / 1000; // 초
-  pausedProgress = Math.min(elapsed / duration, 1);
-  const distance = (wrapperWidth + textWidth) * pausedProgress;
-  newsEl.style.animation = "none";
-  newsEl.style.transform = `translateX(${100 - (distance / wrapperWidth) * 100}vw)`;
   paused = true;
+
+  const style = getComputedStyle(newsEl);
+  const matrix = new DOMMatrixReadOnly(style.transform);
+  newsEl.dataset.currentX = matrix.m41; // 현재 위치 저장
+  newsEl.style.animationPlayState = "paused";
 }
 
-// --- 재개 ---
+// --- 재생 ---
 function resumeScroll() {
   if (!paused) return;
-  const remainingTime = duration * (1 - pausedProgress);
-
-  // 현재 위치에서 이어서 다시 시작
-  newsEl.style.animation = "none";
-  newsEl.offsetHeight;
-  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
-  newsEl.style.animationPlayState = "running";
-  animationStartTime = performance.now() - pausedProgress * duration * 1000;
   paused = false;
-}
 
-// --- 5초 되돌리기 ---
-function rewindScroll() {
-  const elapsed = paused
-    ? pausedProgress * duration
-    : (performance.now() - animationStartTime) / 1000;
+  const currentX = parseFloat(newsEl.dataset.currentX || 0);
+  const remainingDistance = currentX + textWidth; // 현재 위치에서 끝까지 거리
+  const remainingTime = remainingDistance / speed;
 
-  let newElapsed = Math.max(0, elapsed - 5);
-  pausedProgress = newElapsed / duration;
-
-  const distance = (wrapperWidth + textWidth) * pausedProgress;
-  const remainingTime = duration - newElapsed;
-
+  // transform 임시 적용 후 애니메이션 이어감
   newsEl.style.animation = "none";
   newsEl.offsetHeight;
-  newsEl.style.transform = `translateX(${100 - (distance / wrapperWidth) * 100}vw)`;
-  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
-  if (paused) newsEl.style.animationPlayState = "paused";
-  else newsEl.style.animationPlayState = "running";
-  animationStartTime = performance.now() - newElapsed * 1000;
+  newsEl.style.transform = `translateX(${currentX}px)`;
+  setTimeout(() => {
+    newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
+    newsEl.style.animationPlayState = "running";
+  }, 20);
 }
 
-// --- Firebase 제어 ---
-onValue(ref(db, "ttsControl"), (snapshot) => {
+// --- 5초 되감기 ---
+function rewindScroll() {
+  const style = getComputedStyle(newsEl);
+  const matrix = new DOMMatrixReadOnly(style.transform);
+  let currentX = matrix.m41;
+
+  // 5초 되감기
+  currentX = Math.min(currentX + 5 * speed, wrapperWidth);
+  newsEl.style.animation = "none";
+  newsEl.style.transform = `translateX(${currentX}px)`;
+
+  // 잠깐 후 애니메이션 이어가기
+  setTimeout(() => {
+    const remainingDistance = currentX + textWidth;
+    const remainingTime = remainingDistance / speed;
+    newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
+    newsEl.style.animationPlayState = paused ? "paused" : "running";
+  }, 20);
+}
+
+// 버튼 이벤트
+document.getElementById("playBtn").onclick = resumeScroll;
+document.getElementById("pauseBtn").onclick = pauseScroll;
+document.getElementById("rewindBtn").onclick = rewindScroll;
+
+// Firebase 연동
+onValue(ref(db, "ttsControl"), snapshot => {
   const val = snapshot.val();
   if (!val) return;
-
+  if (val.playing === true) resumeScroll();
   if (val.playing === false) pauseScroll();
-  else if (val.playing === true) resumeScroll();
-  else if (val.back === -5) rewindScroll();
+  if (val.back === -5) rewindScroll();
 });
 
+// 초기 뉴스 로딩
 loadNews();
+
 </script>
 </body>
 </html>
