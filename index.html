@@ -34,9 +34,6 @@
     position: absolute;
     top: 0;
     white-space: nowrap;
-    animation-name: scroll;
-    animation-timing-function: linear;
-    animation-iteration-count: 1;
   }
 
   @keyframes scroll {
@@ -52,9 +49,9 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// ✅ Firebase 설정 (컨트롤 페이지와 동일해야 함)
+// ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -72,14 +69,32 @@ const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
 let isPaused = false;
+let startTime = null;
+let duration = 0;
+let pausedProgress = 0;
+let lastBackValue = 0;
 
-// ✅ Firebase ttsControl.playing 실시간 감지
+// ✅ Firebase ttsControl 실시간 감지
 const controlRef = ref(db, "ttsControl");
-onValue(controlRef, (snapshot) => {
+onValue(controlRef, async (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
+
+  // 재생 / 일시정지
   if (data.playing === false) pauseScroll();
   else if (data.playing === true) resumeScroll();
+
+  // 🔙 back 값 변화 감지 (예: -5)
+  if (typeof data.back === "number" && data.back !== lastBackValue) {
+    const seconds = Math.abs(data.back);
+    if (data.back < 0) rewindScroll(seconds);
+    else if (data.back > 0) forwardScroll(seconds);
+
+    lastBackValue = data.back;
+
+    // 되감기/빨리감기 후 Firebase 초기화
+    await set(ref(db, "ttsControl/back"), 0);
+  }
 });
 
 // ✅ 뉴스 불러오기
@@ -93,18 +108,20 @@ async function loadNews() {
   }
 }
 
-// ✅ 뉴스 스크롤 시작
+// ✅ 스크롤 시작
 function startScroll(text) {
   newsEl.textContent = text;
 
   const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
   const speed = 100; // px/sec
-  const duration = (wrapperWidth + textWidth) / speed;
+  duration = (wrapperWidth + textWidth) / speed;
 
   newsEl.style.animation = `scroll linear ${duration}s 1`;
   newsEl.style.animationPlayState = "running";
+  startTime = performance.now();
   isPaused = false;
+  pausedProgress = 0;
 
   newsEl.addEventListener("animationend", function handler() {
     newsEl.removeEventListener("animationend", handler);
@@ -115,6 +132,8 @@ function startScroll(text) {
 // ✅ 일시정지 / 재개
 function pauseScroll() {
   if (!isPaused) {
+    const elapsed = (performance.now() - startTime) / 1000;
+    pausedProgress = elapsed / duration;
     newsEl.style.animationPlayState = "paused";
     isPaused = true;
   }
@@ -123,11 +142,50 @@ function pauseScroll() {
 function resumeScroll() {
   if (isPaused) {
     newsEl.style.animationPlayState = "running";
+    startTime = performance.now() - pausedProgress * duration * 1000;
     isPaused = false;
   }
 }
 
-// ✅ 페이지 처음 실행 시 뉴스 시작
+// ✅ 되감기
+function rewindScroll(seconds) {
+  shiftScroll(-seconds);
+}
+
+// ✅ 빨리감기
+function forwardScroll(seconds) {
+  shiftScroll(seconds);
+}
+
+// ✅ 공용: 스크롤 시간 이동
+function shiftScroll(seconds) {
+  const elapsed = (performance.now() - startTime) / 1000;
+  let newElapsed = elapsed + seconds;
+  if (newElapsed < 0) newElapsed = 0;
+  if (newElapsed > duration) newElapsed = duration;
+
+  const progress = newElapsed / duration;
+  const wrapperWidth = newsEl.parentElement.offsetWidth;
+  const textWidth = newsEl.offsetWidth;
+
+  // 현재 위치 계산
+  const distance = wrapperWidth + textWidth;
+  const newX = wrapperWidth - progress * distance;
+
+  // 애니메이션 일시 해제 후 위치 이동
+  newsEl.style.animation = "none";
+  newsEl.style.transform = `translateX(${newX}px)`;
+
+  // 잠시 후 다시 애니메이션 이어붙이기
+  setTimeout(() => {
+    const remaining = duration - newElapsed;
+    newsEl.style.animation = `scroll linear ${remaining}s 1`;
+    newsEl.style.animationPlayState = isPaused ? "paused" : "running";
+    startTime = performance.now() - newElapsed * 1000;
+  }, 30);
+}
+
+// ✅ 시작
 loadNews();
 </script>
 </body>
