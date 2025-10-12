@@ -1,4 +1,3 @@
-<!-- cpu 메모리 최적화 GPU사용 CSS적용 index.html / 재생/일시정지 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -53,9 +52,9 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// ✅ Firebase 설정 (컨트롤 페이지와 동일해야 함)
+// ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -73,15 +72,23 @@ const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
 let isPaused = false;
+let reverseRunning = false;
+let lastTransformX = 0;
 
-// ✅ Firebase ttsControl.playing 실시간 감지
+// ✅ Firebase ttsControl 실시간 감지
 const controlRef = ref(db, "ttsControl");
 onValue(controlRef, (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
+
   if (data.playing === false) pauseScroll();
   else if (data.playing === true) resumeScroll();
-  // 글자 크기 실시간 반영
+
+  if (data.back === -5) {
+    reverseScroll(5);
+    update(ref(db, "ttsControl"), { back: 0 }); // ✅ 초기화
+  }
+
   if (data.fontSize) {
     newsEl.style.fontSize = data.fontSize + "px";
   }
@@ -120,19 +127,56 @@ function startScroll(text) {
 // ✅ 일시정지 / 재개
 function pauseScroll() {
   if (!isPaused) {
+    const computed = getComputedStyle(newsEl);
+    const matrix = new WebKitCSSMatrix(computed.transform);
+    lastTransformX = matrix.m41;
     newsEl.style.animationPlayState = "paused";
+    newsEl.style.transform = `translateX(${lastTransformX}px)`;
     isPaused = true;
   }
 }
 
 function resumeScroll() {
-  if (isPaused) {
+  if (isPaused && !reverseRunning) {
     newsEl.style.animationPlayState = "running";
     isPaused = false;
   }
 }
 
-// ✅ 페이지 처음 실행 시 뉴스 시작
+// ✅ 되감기 (CSS 유지 + GPU 직접 이동)
+function reverseScroll(seconds) {
+  if (reverseRunning) return;
+  reverseRunning = true;
+
+  pauseScroll();
+  const computed = getComputedStyle(newsEl);
+  const matrix = new WebKitCSSMatrix(computed.transform);
+  let currentX = matrix.m41;
+
+  const speed = 100; // scroll과 동일 속도(px/s)
+  const moveDist = speed * seconds;
+  const targetX = currentX + moveDist; // 뒤로가기니까 오른쪽으로 이동
+
+  const startTime = performance.now();
+  const duration = seconds * 1000;
+
+  function animate(now) {
+    const progress = (now - startTime) / duration;
+    if (progress < 1) {
+      const newX = currentX + moveDist * progress;
+      newsEl.style.transform = `translateX(${newX}px)`;
+      requestAnimationFrame(animate);
+    } else {
+      newsEl.style.transform = `translateX(${targetX}px)`;
+      reverseRunning = false;
+      resumeScroll();
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ✅ 첫 뉴스 시작
 loadNews();
 </script>
 </body>
