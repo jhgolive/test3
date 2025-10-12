@@ -16,7 +16,6 @@
     position: fixed;
     top: 0;
     left: 0;
-    transform: translateY(-8px);
     width: 100vw;
     height: 40px;
     z-index: 9999;
@@ -54,7 +53,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -145,29 +143,27 @@ function resumeScroll() {
 function applyBack(backSeconds) {
   if (!animationStartTime) return;
 
-  // 현재 위치 계산
+  const speed = 100; // px/sec
   const elapsed = (performance.now() - animationStartTime) / 1000; // 초
-  const progress = Math.min(elapsed / animationDuration, 1);
   const wrapperPlusText = wrapperWidth + textWidth;
-  const currentX = wrapperWidth - progress * wrapperPlusText;
 
-  // 뒤로감기 적용
-  const backX = currentX + backSeconds * 100; // speed 100px/sec
+  // 현재 이동 거리
+  const distanceMoved = elapsed * speed;
+  // 뒤로감기 거리
+  const backDistance = -backSeconds * speed;
+  // 현재 진행률
+  let progress = (distanceMoved + backDistance) / wrapperPlusText;
+  if (progress < 0) progress = 0;
 
-  // transform 즉시 적용
-  newsEl.style.animationPlayState = "paused";
-  newsEl.style.transform = `translateX(${backX}px)`;
+  const remainingDistance = wrapperPlusText * (1 - progress);
+  const remainingDuration = remainingDistance / speed;
 
-  // 남은 거리 계산
-  const remainingDistance = backX + textWidth;
-  const remainingDuration = remainingDistance / 100;
+  // CSS 애니메이션 재설정
+  newsEl.style.animation = `scroll linear ${remainingDuration}s 1`;
+  newsEl.style.animationPlayState = "running";
 
-  // 남은 애니메이션 재개
-  requestAnimationFrame(() => {
-    newsEl.style.animation = `scroll linear ${remainingDuration}s 1`;
-    newsEl.style.animationPlayState = "running";
-    animationStartTime = performance.now() - (elapsed - backSeconds) * 1000;
-  });
+  // animationStartTime 보정
+  animationStartTime = performance.now() - (elapsed - backSeconds) * 1000;
 }
 
 // ✅ 페이지 시작
