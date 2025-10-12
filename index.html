@@ -148,23 +148,25 @@ function reverseScroll(seconds) {
   if (reverseRunning) return;
   reverseRunning = true;
 
-  // ✅ 1. CSS 애니메이션 완전히 중단 (덮어쓰기 방지)
+  // 1️⃣ CSS 애니메이션 완전히 멈춤
   const computed = getComputedStyle(newsEl);
   const matrix = new WebKitCSSMatrix(computed.transform);
   let currentX = matrix.m41;
-  newsEl.style.animation = "none"; // ← 중요
+  newsEl.style.animation = "none";
   newsEl.style.transform = `translateX(${currentX}px)`;
 
-  // ✅ 2. JS로 되감기
+  // 2️⃣ 되감기 (왼→오 방향)
   const speed = 100; // px/sec
   const distance = speed * seconds;
-  const targetX = currentX + distance; // 뒤로가기 방향
+  const targetX = currentX + distance; // ← 이건 오른쪽(되감기) 방향
+
   const start = performance.now();
   const duration = seconds * 1000;
 
   function step(now) {
     const progress = (now - start) / duration;
     if (progress < 1) {
+      // ✅ currentX에서 targetX로 "오른쪽으로" 이동해야 함
       const newX = currentX + distance * progress;
       newsEl.style.transform = `translateX(${newX}px)`;
       requestAnimationFrame(step);
@@ -172,9 +174,9 @@ function reverseScroll(seconds) {
       newsEl.style.transform = `translateX(${targetX}px)`;
       reverseRunning = false;
 
-      // ✅ 3. 되감기 끝나면 CSS 애니메이션 재시작 (현재 위치에서 이어가기)
+      // 3️⃣ 되감기 끝 → 다시 왼쪽(정방향)으로 애니메이션 재개
       requestAnimationFrame(() => {
-        newsEl.style.animation = ""; // 원래 CSS animation 복원
+        newsEl.style.animation = ""; // 원래 scroll 애니메이션 복원
         newsEl.style.animationPlayState = "running";
       });
     }
