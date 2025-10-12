@@ -81,6 +81,10 @@ onValue(controlRef, (snapshot) => {
   if (!data) return;
   if (data.playing === false) pauseScroll();
   else if (data.playing === true) resumeScroll();
+  // 글자 크기 실시간 반영
+  if (data.fontSize) {
+    newsEl.style.fontSize = data.fontSize + "px";
+  }
 });
 
 // ✅ 뉴스 불러오기
