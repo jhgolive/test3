@@ -1,7 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>뉴스</title>
+<style>
+  body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  #wrapper {
+    white-space: nowrap;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: translateY(-8px);
+    width: 100vw;
+    height: 40px;
+    z-index: 9999;
+  }
+
+  #news {
+    display: inline-block;
+    font-size: 28px;
+    color: white;
+    font-weight: bold;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black,
+                 -1px -1px black, -1px 1px black, 1px -1px black, 1px 1px black;
+    will-change: transform;
+    backface-visibility: hidden;
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    animation-name: scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+  }
+
+  @keyframes scroll {
+    from { transform: translateX(100vw); }
+    to { transform: translateX(-100%); }
+  }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="news">뉴스 로딩 중...</div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
+// ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -23,7 +76,7 @@ let animationStartTime = null;
 let animationDuration = 0;
 let wrapperWidth, textWidth;
 
-// ✅ Firebase ttsControl.playing 감지
+// ✅ ttsControl.playing 감지
 const controlRef = ref(db, "ttsControl");
 onValue(controlRef, (snapshot) => {
   const data = snapshot.val();
@@ -32,14 +85,13 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// ✅ Firebase back 값 감지
+// ✅ back 값 감지
 const backRef = ref(db, "back");
 onValue(backRef, (snapshot) => {
-  const data = snapshot.val();
-  if (data && data < 0) {
-    applyBack(data);
-    // 바로 0으로 초기화
-    set(backRef, 0);
+  const backVal = snapshot.val();
+  if (backVal && backVal < 0) {
+    applyBack(backVal);
+    set(backRef, 0); // 바로 초기화
   }
 });
 
@@ -93,21 +145,21 @@ function resumeScroll() {
 function applyBack(backSeconds) {
   if (!animationStartTime) return;
 
-  // 현재 transform 위치 계산
+  // 현재 위치 계산
   const elapsed = (performance.now() - animationStartTime) / 1000; // 초
-  const progress = Math.min(elapsed / animationDuration, 1); // 0~1
+  const progress = Math.min(elapsed / animationDuration, 1);
   const wrapperPlusText = wrapperWidth + textWidth;
   const currentX = wrapperWidth - progress * wrapperPlusText;
 
   // 뒤로감기 적용
   const backX = currentX + backSeconds * 100; // speed 100px/sec
 
-  // transform 바로 적용
+  // transform 즉시 적용
   newsEl.style.animationPlayState = "paused";
   newsEl.style.transform = `translateX(${backX}px)`;
 
-  // 새로운 남은 시간 계산
-  const remainingDistance = backX + textWidth; // -100%까지 이동
+  // 남은 거리 계산
+  const remainingDistance = backX + textWidth;
   const remainingDuration = remainingDistance / 100;
 
   // 남은 애니메이션 재개
@@ -121,3 +173,5 @@ function applyBack(backSeconds) {
 // ✅ 페이지 시작
 loadNews();
 </script>
+</body>
+</html>
