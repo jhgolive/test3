@@ -2,12 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뉴스</title>
+<title>뉴스 스크롤 컨트롤 (Firebase 연동)</title>
 <style>
   body {
     margin: 0;
-    background: transparent;
+    background: black;
     overflow: hidden;
+    color: white;
+    font-family: Arial, sans-serif;
   }
 
   #wrapper {
@@ -18,7 +20,6 @@
     left: 0;
     width: 100vw;
     height: 100px;
-    z-index: 9999;
   }
 
   #news {
@@ -26,16 +27,13 @@
     font-size: 28px;
     color: white;
     font-weight: bold;
-    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black,
-                 -1px -1px black, -1px 1px black, 1px -1px black, 1px 1px black;
-    will-change: transform;
-    backface-visibility: hidden;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
     position: absolute;
     top: 0;
     white-space: nowrap;
     animation-name: scroll;
     animation-timing-function: linear;
-    animation-iteration-count: 1;
+    animation-iteration-count: infinite;
     animation-fill-mode: forwards;
   }
 
@@ -47,7 +45,7 @@
 </head>
 <body>
 <div id="wrapper">
-  <div id="news">뉴스 로딩 중...</div>
+  <div id="news">Firebase 연동 뉴스 스크롤 테스트 중입니다.</div>
 </div>
 
 <script type="module">
@@ -64,109 +62,82 @@ const firebaseConfig = {
   messagingSenderId: "271371741627",
   appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const controlRef = ref(db, "ttsControl");
 
 const newsEl = document.getElementById("news");
-const wrapper = newsEl.parentElement;
-const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
-
-const speed = 100; // px/sec
-let isPaused = false;
 let isReverse = false;
+let isPaused = false;
+let speed = 100; // px/sec
 
-// -------------------- 뉴스 불러오기 --------------------
-async function loadNews() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    if (data.news) startScroll(data.news);
-  } catch (err) {
-    console.error("뉴스 로딩 실패", err);
-  }
-}
-
-// -------------------- 스크롤 시작 --------------------
-function startScroll(text) {
-  newsEl.textContent = text;
-
-  const wrapperWidth = wrapper.offsetWidth;
+// 뉴스 시작
+function startAnimation() {
+  const wrapperWidth = newsEl.parentElement.offsetWidth;
   const textWidth = newsEl.offsetWidth;
   const duration = (wrapperWidth + textWidth) / speed;
 
-  newsEl.style.animation = `scroll linear ${duration}s 1`;
-  newsEl.style.animationDirection = "normal";
-  newsEl.style.animationPlayState = "running";
-  isPaused = false;
-
-  newsEl.addEventListener("animationend", function handler() {
-    newsEl.removeEventListener("animationend", handler);
-    loadNews();
-  });
+  newsEl.style.animation = `scroll linear ${duration}s infinite`;
+  newsEl.style.animationDirection = isReverse ? 'reverse' : 'normal';
+  newsEl.style.animationPlayState = 'running';
 }
 
-// -------------------- 일시정지 / 재개 --------------------
-function pauseScroll() {
-  if (!isPaused) {
-    newsEl.style.animationPlayState = "paused";
-    isPaused = true;
-  }
-}
-
-function resumeScroll() {
-  if (isPaused) {
-    newsEl.style.animationPlayState = "running";
-    isPaused = false;
-  }
-}
-
-// -------------------- 방향 전환 --------------------
-function toggleDirection(reverse) {
-  if (isReverse === reverse) return;
-  isReverse = reverse;
-
-  const style = getComputedStyle(newsEl);
-  const matrix = new WebKitCSSMatrix(style.transform);
-  const currentX = matrix.m41; // 현재 translateX 값
-
-  const wrapperWidth = wrapper.offsetWidth;
-  const textWidth = newsEl.offsetWidth;
-  const speedPxPerSec = speed;
-
-  // 남은 거리 계산
-  let distance;
-  if (reverse) distance = wrapperWidth - currentX; // 오른쪽으로
-  else distance = -textWidth - currentX;          // 왼쪽으로
-
-  const remainingTime = Math.abs(distance / speedPxPerSec);
-
-  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
-  newsEl.style.animationDirection = reverse ? "reverse" : "normal";
-  newsEl.style.animationPlayState = "running";
-}
-
-// -------------------- Firebase 감지 --------------------
-onValue(controlRef, (snapshot) => {
+// Firebase control 값 실시간 감지
+const controlRef = ref(db, "ttsControl");
+onValue(controlRef, snapshot => {
   const data = snapshot.val();
   if (!data) return;
 
+  // 글자 크기 적용
+  if (data.fontSize) newsEl.style.fontSize = data.fontSize + "px";
+
+  // 재생/일시정지
   if (data.playing !== undefined) {
     isPaused = !data.playing;
-    newsEl.style.animationPlayState = data.playing ? "running" : "paused";
+    newsEl.style.animationPlayState = isPaused ? 'paused' : 'running';
   }
 
-  if (data.reverse !== undefined) {
+  // 방향 전환
+  if (data.reverse !== undefined && data.reverse !== isReverse) {
     toggleDirection(data.reverse);
   }
-
-  if (data.fontSize) newsEl.style.fontSize = data.fontSize + "px";
 });
 
-// -------------------- 초기 뉴스 로드 --------------------
-loadNews();
+// 방향 전환 함수 (중간 위치에서 바로 반대로)
+function toggleDirection(reverse) {
+  const style = getComputedStyle(newsEl);
+  const matrix = new DOMMatrixReadOnly(style.transform);
+  const currentX = matrix.m41;
 
+  const wrapperWidth = newsEl.parentElement.offsetWidth;
+  const textWidth = newsEl.offsetWidth;
+  const totalDistance = wrapperWidth + textWidth;
+
+  // 현재 진행률 계산
+  let progress;
+  if (!isReverse) {
+    progress = (wrapperWidth - currentX) / totalDistance;
+  } else {
+    progress = (currentX + textWidth) / totalDistance;
+  }
+
+  isReverse = reverse;
+
+  // 기존 애니메이션 제거
+  newsEl.style.animation = 'none';
+  newsEl.style.transform = `translateX(${currentX}px)`;
+
+  requestAnimationFrame(() => {
+    const duration = totalDistance / speed;
+    const delay = -progress * duration;
+    newsEl.style.animation = `scroll linear ${duration}s infinite`;
+    newsEl.style.animationDirection = isReverse ? 'reverse' : 'normal';
+    newsEl.style.animationDelay = `${delay}s`;
+    newsEl.style.animationPlayState = isPaused ? 'paused' : 'running';
+  });
+}
+
+// 페이지 로드 시 초기 애니메이션
+window.onload = startAnimation;
 </script>
 </body>
 </html>
