@@ -83,18 +83,21 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// back 값 감지 + 즉시 0으로 초기화
+// back 값 감지 및 0 초기화
 const backRef = ref(db, "back");
-onValue(backRef, (snapshot) => {
-  let backSec = snapshot.val();
-  if (!backSec) return;
+function watchBack() {
+  onValue(backRef, (snapshot) => {
+    const backSec = snapshot.val();
+    if (!backSec) return;
 
-  // Firebase back 값 먼저 0으로 초기화
-  set(ref(db, "back"), 0);
+    // 먼저 적용
+    applyBack(backSec);
 
-  // 그 다음 적용
-  applyBack(backSec);
-});
+    // 적용 후 0으로 초기화
+    set(backRef, 0);
+  });
+}
+watchBack();
 
 // 뉴스 불러오기
 async function loadNews() {
