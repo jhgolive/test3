@@ -52,7 +52,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 // Firebase 설정
 const firebaseConfig = {
@@ -72,7 +72,6 @@ const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
 let isPaused = false;
-let animationStartTime = null;
 let animationDuration = 0;
 
 // ttsControl.playing 감지
@@ -116,7 +115,6 @@ function startScroll(text) {
   newsEl.style.animation = `scroll linear ${animationDuration}s 1`;
   newsEl.style.animationPlayState = "running";
   isPaused = false;
-  animationStartTime = performance.now();
 
   // 애니메이션 종료 시 다음 뉴스
   newsEl.addEventListener("animationend", function handler() {
@@ -125,8 +123,10 @@ function startScroll(text) {
   });
 }
 
-// back 적용 (CSS 애니메이션 중간 위치 변경)
+// back 적용 (CSS 애니메이션 중간 위치 변경 후 초기화)
 function applyBack(seconds) {
+  if (!seconds) return;
+
   // 현재 transform 값 가져오기
   const style = window.getComputedStyle(newsEl);
   const matrix = new DOMMatrixReadOnly(style.transform);
@@ -136,11 +136,15 @@ function applyBack(seconds) {
   const speed = (newsEl.parentElement.offsetWidth + newsEl.offsetWidth) / animationDuration; // px/sec
   const movePx = speed * seconds;
 
-  // transform 직접 조정
+  // transform 직접 적용
   newsEl.style.animationPlayState = "paused";
   newsEl.style.transform = `translateX(${currentX + movePx}px)`;
+
   // 조금 있다가 다시 재생
   setTimeout(() => { if (!isPaused) newsEl.style.animationPlayState = "running"; }, 10);
+
+  // Firebase back 값 초기화
+  set(ref(db, "back"), 0);
 }
 
 // 일시정지 / 재개
