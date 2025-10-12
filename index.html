@@ -148,32 +148,33 @@ function reverseScroll(seconds) {
   if (reverseRunning) return;
   reverseRunning = true;
 
-  pauseScroll();
+  pauseScroll(); // 현재 위치 고정
   const computed = getComputedStyle(newsEl);
   const matrix = new WebKitCSSMatrix(computed.transform);
   let currentX = matrix.m41;
 
-  const speed = 100; // scroll과 동일 속도(px/s)
-  const moveDist = speed * seconds;
-  const targetX = currentX + moveDist; // 뒤로가기니까 오른쪽으로 이동
+  const speed = 100; // px/sec (scroll과 동일)
+  const distance = speed * seconds; // 5초 되감기 거리
+  const targetX = currentX + distance; // ← 방향 반전 (뒤로가기)
 
-  const startTime = performance.now();
+  const start = performance.now();
   const duration = seconds * 1000;
 
-  function animate(now) {
-    const progress = (now - startTime) / duration;
+  function step(now) {
+    const progress = (now - start) / duration;
     if (progress < 1) {
-      const newX = currentX + moveDist * progress;
+      // ✅ 뒤로가야 하므로 currentX → targetX 로 "감소"가 아니라 "증가" 방향
+      const newX = currentX + distance * progress;
       newsEl.style.transform = `translateX(${newX}px)`;
-      requestAnimationFrame(animate);
+      requestAnimationFrame(step);
     } else {
       newsEl.style.transform = `translateX(${targetX}px)`;
       reverseRunning = false;
-      resumeScroll();
+      resumeScroll(); // 되감기 끝나면 다시 애니메이션 이어감
     }
   }
 
-  requestAnimationFrame(animate);
+  requestAnimationFrame(step);
 }
 
 // ✅ 첫 뉴스 시작
