@@ -29,15 +29,14 @@
     font-weight: bold;
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black, 
                  -1px -1px black, -1px 1px black, 1px -1px black, 1px 1px black;
-    will-change: transform;
-    backface-visibility: hidden;
     position: absolute;
     top: 0;
     white-space: nowrap;
+    will-change: transform;
+    backface-visibility: hidden;
     animation-name: scroll;
     animation-timing-function: linear;
     animation-iteration-count: 1;
-    animation-play-state: paused; /* 처음엔 정지 */
   }
 
   @keyframes scroll {
@@ -71,12 +70,12 @@ const db = getDatabase(app);
 const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
-let animationStartTime = 0;   // 시작 시각
-let pausedTime = 0;           // 일시정지 시점 (ms)
-let duration = 0;             // 총 지속시간 (초)
-let startOffset = 0;          // 현재 offset (초)
-let textWidth = 0;
+let animationStartTime = 0;
+let pausedProgress = 0;
+let duration = 0;
 let wrapperWidth = 0;
+let textWidth = 0;
+let paused = false;
 
 async function loadNews() {
   try {
@@ -92,62 +91,72 @@ function startScroll(text) {
   newsEl.textContent = text;
   wrapperWidth = newsEl.parentElement.offsetWidth;
   textWidth = newsEl.offsetWidth;
-  const speed = 100;
+  const speed = 100; // px/sec
   duration = (wrapperWidth + textWidth) / speed;
 
-  // 리셋 후 애니메이션 시작
+  // 초기화 및 재시작
   newsEl.style.animation = "none";
   newsEl.offsetHeight;
   newsEl.style.animation = `scroll linear ${duration}s 1`;
   newsEl.style.animationPlayState = "running";
-  animationStartTime = performance.now();
-  pausedTime = 0;
 
-  newsEl.addEventListener("animationend", async function handler() {
+  animationStartTime = performance.now();
+  pausedProgress = 0;
+  paused = false;
+
+  newsEl.addEventListener("animationend", function handler() {
     newsEl.removeEventListener("animationend", handler);
-    await loadNews();
+    loadNews(); // 다음 뉴스
   });
 }
 
-// 🔸 일시정지
+// --- 일시정지 ---
 function pauseScroll() {
-  if (newsEl.style.animationPlayState === "paused") return;
-  newsEl.style.animationPlayState = "paused";
-  pausedTime = performance.now();
+  if (paused) return;
+  const elapsed = (performance.now() - animationStartTime) / 1000; // 초
+  pausedProgress = Math.min(elapsed / duration, 1);
+  const distance = (wrapperWidth + textWidth) * pausedProgress;
+  newsEl.style.animation = "none";
+  newsEl.style.transform = `translateX(${100 - (distance / wrapperWidth) * 100}vw)`;
+  paused = true;
 }
 
-// 🔸 재생 재개
+// --- 재개 ---
 function resumeScroll() {
-  if (newsEl.style.animationPlayState === "running") return;
-  const elapsed = (pausedTime - animationStartTime) / 1000; // 초 단위
-  const remaining = duration - elapsed;
-  const currentTransform = (elapsed / duration) * (wrapperWidth + textWidth);
+  if (!paused) return;
+  const remainingTime = duration * (1 - pausedProgress);
 
+  // 현재 위치에서 이어서 다시 시작
   newsEl.style.animation = "none";
   newsEl.offsetHeight;
-  newsEl.style.transform = `translateX(${100 - (currentTransform / wrapperWidth) * 100}vw)`;
-  newsEl.style.animation = `scroll linear ${remaining}s 1`;
+  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
   newsEl.style.animationPlayState = "running";
-  animationStartTime = performance.now() - elapsed * 1000;
+  animationStartTime = performance.now() - pausedProgress * duration * 1000;
+  paused = false;
 }
 
-// 🔸 5초 되돌리기
+// --- 5초 되돌리기 ---
 function rewindScroll() {
-  if (!animationStartTime) return;
-  const now = performance.now();
-  const elapsed = (now - animationStartTime) / 1000;
-  const newElapsed = Math.max(0, elapsed - 5);
-  const offset = (newElapsed / duration) * (wrapperWidth + textWidth);
+  const elapsed = paused
+    ? pausedProgress * duration
+    : (performance.now() - animationStartTime) / 1000;
+
+  let newElapsed = Math.max(0, elapsed - 5);
+  pausedProgress = newElapsed / duration;
+
+  const distance = (wrapperWidth + textWidth) * pausedProgress;
+  const remainingTime = duration - newElapsed;
 
   newsEl.style.animation = "none";
   newsEl.offsetHeight;
-  newsEl.style.transform = `translateX(${100 - (offset / wrapperWidth) * 100}vw)`;
-  newsEl.style.animation = `scroll linear ${duration - newElapsed}s 1`;
-  newsEl.style.animationPlayState = "running";
-  animationStartTime = now - newElapsed * 1000;
+  newsEl.style.transform = `translateX(${100 - (distance / wrapperWidth) * 100}vw)`;
+  newsEl.style.animation = `scroll linear ${remainingTime}s 1`;
+  if (paused) newsEl.style.animationPlayState = "paused";
+  else newsEl.style.animationPlayState = "running";
+  animationStartTime = performance.now() - newElapsed * 1000;
 }
 
-// 🔸 Firebase 제어 연동 (ttsControl)
+// --- Firebase 제어 ---
 onValue(ref(db, "ttsControl"), (snapshot) => {
   const val = snapshot.val();
   if (!val) return;
