@@ -43,28 +43,18 @@
     from { transform: translateX(100vw); }
     to { transform: translateX(-100%); }
   }
-
-  #status {
-    position: fixed;
-    right: 10px;
-    top: 45px;
-    font-size: 14px;
-    color: #ccc;
-    font-family: monospace;
-  }
 </style>
 </head>
 <body>
 <div id="wrapper">
   <div id="news">뉴스 로딩 중...</div>
 </div>
-<div id="status">▶ 재생 중</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-// ✅ Firebase 설정 (컨트롤 페이지와 동일하게)
+// ✅ Firebase 설정 (컨트롤 페이지와 동일해야 함)
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
   authDomain: "mygps-11798.firebaseapp.com",
@@ -79,13 +69,11 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const newsEl = document.getElementById("news");
-const statusEl = document.getElementById("status");
 const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
 
-let pendingNews = null;
 let isPaused = false;
 
-// ✅ Firebase에서 ttsControl.playing 상태 실시간 반영
+// ✅ Firebase ttsControl.playing 실시간 감지
 const controlRef = ref(db, "ttsControl");
 onValue(controlRef, (snapshot) => {
   const data = snapshot.val();
@@ -94,21 +82,18 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// ✅ 뉴스 가져오기
+// ✅ 뉴스 불러오기
 async function loadNews() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
-    if (data.news) {
-      pendingNews = data.news;
-      startScroll(pendingNews);
-    }
+    if (data.news) startScroll(data.news);
   } catch (err) {
-    console.error("뉴스 불러오기 실패", err);
+    console.error("뉴스 로딩 실패", err);
   }
 }
 
-// ✅ 스크롤 시작
+// ✅ 뉴스 스크롤 시작
 function startScroll(text) {
   newsEl.textContent = text;
 
@@ -120,42 +105,29 @@ function startScroll(text) {
   newsEl.style.animation = `scroll linear ${duration}s 1`;
   newsEl.style.animationPlayState = "running";
   isPaused = false;
-  statusEl.textContent = "▶ 재생 중";
 
   newsEl.addEventListener("animationend", function handler() {
     newsEl.removeEventListener("animationend", handler);
-    loadNews();
+    loadNews(); // 다음 뉴스 자동 로드
   });
 }
 
-// ✅ 일시정지
+// ✅ 일시정지 / 재개
 function pauseScroll() {
   if (!isPaused) {
     newsEl.style.animationPlayState = "paused";
     isPaused = true;
-    statusEl.textContent = "⏸ 일시정지";
   }
 }
 
-// ✅ 재생
 function resumeScroll() {
   if (isPaused) {
     newsEl.style.animationPlayState = "running";
     isPaused = false;
-    statusEl.textContent = "▶ 재생 중";
   }
 }
 
-// ✅ 수동으로 스페이스바로도 테스트 가능
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") {
-    e.preventDefault();
-    if (isPaused) resumeScroll();
-    else pauseScroll();
-  }
-});
-
-// ✅ 초기 뉴스 실행
+// ✅ 페이지 처음 실행 시 뉴스 시작
 loadNews();
 </script>
 </body>
