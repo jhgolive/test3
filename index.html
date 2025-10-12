@@ -83,21 +83,23 @@ onValue(controlRef, (snapshot) => {
   else if (data.playing === true) resumeScroll();
 });
 
-// back 값 감지 및 0 초기화
+// back 레퍼런스
 const backRef = ref(db, "back");
-function watchBack() {
-  onValue(backRef, (snapshot) => {
-    const backSec = snapshot.val();
-    if (!backSec) return;
 
-    // 먼저 적용
-    applyBack(backSec);
+// 1️⃣ 페이지 처음 로드 시 back 초기화
+set(backRef, 0).then(() => console.log("back 값 초기화 완료"));
 
-    // 적용 후 0으로 초기화
-    set(backRef, 0);
-  });
-}
-watchBack();
+// 2️⃣ 이벤트 감지
+onValue(backRef, (snapshot) => {
+  const backSec = snapshot.val();
+  if (!backSec) return;
+
+  // back 적용
+  applyBack(backSec);
+
+  // 적용 후 즉시 0으로 초기화
+  set(backRef, 0);
+});
 
 // 뉴스 불러오기
 async function loadNews() {
