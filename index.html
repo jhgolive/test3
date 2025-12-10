@@ -11,7 +11,7 @@
 window.createBricksBatch = () => {};
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, orderBy, getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
@@ -327,21 +327,21 @@ const wordListCol = collection(db, "wordList");
   });
   //------------------------------뉴스-----------------------------------------
 //import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+//import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 // ✅ Firebase 설정 (컨트롤 페이지와 동일해야 함)
-const firebaseConfig = {
-  apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
-  authDomain: "mygps-11798.firebaseapp.com",
-  databaseURL: "https://mygps-11798-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "mygps-11798",
-  storageBucket: "mygps-11798.firebasedestorage.app",
-  messagingSenderId: "271371741627",
-  appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
-};
+//const firebaseConfig = {
+//  apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
+//  authDomain: "mygps-11798.firebaseapp.com",
+//  databaseURL: "https://mygps-11798-default-rtdb.asia-southeast1.firebasedatabase.app",
+//  projectId: "mygps-11798",
+//  storageBucket: "mygps-11798.firebasedestorage.app",
+//  messagingSenderId: "271371741627",
+//  appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
+//};
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+//const app = initializeApp(firebaseConfig);
+//const db = getDatabase(app);
 
 const newsEl = document.getElementById("news");
 const API_URL = "https://newstts-production-0424.up.railway.app/news";
