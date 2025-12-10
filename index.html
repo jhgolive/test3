@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<title>로고계좌타임 뉴스</title>
+<title>로고계좌타임</title>
 </head>
 <script type="module">
 
@@ -326,7 +326,7 @@ const wordListCol = collection(db, "wordList");
     if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
   });
   //------------------------------뉴스-----------------------------------------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+//import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 // ✅ Firebase 설정 (컨트롤 페이지와 동일해야 함)
@@ -525,10 +525,14 @@ loadNews();
 </style>
 <body>
   <br />
-  <div id="wrapper">
-  	<div id="news">뉴스 로딩 중...</div>
-	</div>
   <table border="0">
+  	<tr>
+  		<td>
+  			<div id="wrapper">
+  				<div id="news">뉴스 로딩 중...</div>
+				</div>
+  		</td>
+  	</tr>
     <tr>
       <td width="975" style="vertical-align: top; text-align: right; white-space: nowrap; overflow: hidden; max-width: 975px; padding-top: 0px; padding-left: 0px; padding-right: 100px;">
         <span class="typing" style="color: white; font-size: 45px; font-weight: bold; font-family: hy울릉도b; text-shadow: -2px 0 black, 0 2px black, 2px 0 black, 0 -2px black, -2px -2px black, -2px 2px black, 2px -2px black, 2px 2px black;">
